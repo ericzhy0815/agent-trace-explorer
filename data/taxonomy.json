@@ -1,0 +1,452 @@
+{
+ "stages": [
+  {
+   "key": "prep",
+   "label": "Preprocessing / features"
+  },
+  {
+   "key": "init",
+   "label": "Coarse initialization"
+  },
+  {
+   "key": "match",
+   "label": "Correspondence / fitting"
+  },
+  {
+   "key": "model",
+   "label": "Transform model"
+  },
+  {
+   "key": "pkg",
+   "label": "Published method"
+  },
+  {
+   "key": "multi",
+   "label": "Multi-slice strategy"
+  },
+  {
+   "key": "check",
+   "label": "Self-evaluation / selection"
+  }
+ ],
+ "keywords": [
+  {
+   "stage": "prep",
+   "category": "Gene handling",
+   "key": "gene_intersect",
+   "label": "Shared-gene intersection",
+   "pattern": "set\\([^()\\n]*\\)\\s*&\\s*set\\(|intersect1d|common_genes|shared_genes|genes_common|var_names\\.intersection|\\.intersection\\(",
+   "definition": "Restrict both slices to genes measured in both before comparing expression."
+  },
+  {
+   "stage": "prep",
+   "category": "Expression scale",
+   "key": "normalize",
+   "label": "Normalize / log1p",
+   "pattern": "log1p|normalize_total|\\bcp10k\\b|\\bcpm\\b",
+   "definition": "Library-size normalization and log transform of counts."
+  },
+  {
+   "stage": "prep",
+   "category": "Expression scale",
+   "key": "hvg",
+   "label": "Highly variable genes",
+   "pattern": "highly_variable|\\bhvgs?\\b|top_var",
+   "definition": "Keep only the most variable genes."
+  },
+  {
+   "stage": "prep",
+   "category": "Embedding",
+   "key": "pca",
+   "label": "PCA / SVD embedding",
+   "pattern": "\\bPCA\\(|TruncatedSVD|linalg\\.svd\\(|randomized_svd|pp\\.pca\\(|\\btl\\.pca\\(",
+   "definition": "Low-dimensional expression embedding shared by the slices."
+  },
+  {
+   "stage": "prep",
+   "category": "Embedding",
+   "key": "integration",
+   "label": "Batch integration",
+   "pattern": "harmony|scanorama|\\bcombat\\b|bbknn|\\bscvi\\b|\\bCCA\\(",
+   "definition": "Remove platform or batch differences before matching (Harmony, Scanorama, ComBat, CCA, scVI)."
+  },
+  {
+   "stage": "prep",
+   "category": "Cell labels",
+   "key": "cluster",
+   "label": "Clustering / domains",
+   "pattern": "KMeans|leiden|louvain|GaussianMixture|AgglomerativeClustering|SpectralClustering",
+   "definition": "Cluster cells or spots into types or spatial domains and match on labels."
+  },
+  {
+   "stage": "init",
+   "category": "Centering",
+   "key": "centroid",
+   "label": "Centroid centering",
+   "pattern": "centroid|cent(er|re)ing",
+   "definition": "Translate each slice so its centroid sits at the origin."
+  },
+  {
+   "stage": "init",
+   "category": "Orientation search",
+   "key": "flip",
+   "label": "Flip / mirror search",
+   "pattern": "flip|mirror|reflect",
+   "definition": "Consider reflected orientations, not only rotations."
+  },
+  {
+   "stage": "init",
+   "category": "Orientation search",
+   "key": "rot_grid",
+   "label": "Rotation grid search",
+   "pattern": "for\\s+\\w*(ang|theta|rot|deg)\\w*\\s+in\\b|(arange|linspace)\\([^)\\n]{0,30}360|range\\(\\s*0\\s*,\\s*360",
+   "definition": "Score a grid of rotation angles and keep the best."
+  },
+  {
+   "stage": "init",
+   "category": "Orientation search",
+   "key": "principal_axes",
+   "label": "Principal-axis alignment",
+   "pattern": "principal.?ax|eigh\\(\\s*np\\.cov|np\\.cov\\([^)\\n]*(xy|coord|pts|points)",
+   "definition": "Align the slices' principal axes (second moments) to fix rotation."
+  },
+  {
+   "stage": "init",
+   "category": "Image-based registration",
+   "key": "raster",
+   "label": "Rasterize to image",
+   "pattern": "histogram2d|rasteri[sz]|to_image\\(|np\\.add\\.at\\(|binned_image|density_image|grid_image",
+   "definition": "Bin cells or spots into a density or expression image."
+  },
+  {
+   "stage": "init",
+   "category": "Image-based registration",
+   "key": "xcorr",
+   "label": "FFT / cross-correlation",
+   "pattern": "fftconvolve|correlate2d|phase_cross_correlation|cross.?correl|np\\.fft|scipy\\.fft|match_?template|matchTemplate",
+   "definition": "Find the shift (and angle) that maximizes image correlation."
+  },
+  {
+   "stage": "match",
+   "category": "Point correspondence",
+   "key": "knn",
+   "label": "Nearest-neighbor search",
+   "pattern": "NearestNeighbors|cKDTree|KDTree|kneighbors|BallTree",
+   "definition": "kNN or KD-tree queries, in space or in expression."
+  },
+  {
+   "stage": "match",
+   "category": "Point correspondence",
+   "key": "mnn",
+   "label": "Mutual nearest neighbors",
+   "pattern": "mutual|\\bmnn\\b",
+   "definition": "Keep only cross-slice pairs that are each other's nearest neighbor."
+  },
+  {
+   "stage": "match",
+   "category": "Point correspondence",
+   "key": "hungarian",
+   "label": "Hungarian assignment",
+   "pattern": "linear_sum_assignment",
+   "definition": "One-to-one assignment between cells or clusters."
+  },
+  {
+   "stage": "match",
+   "category": "Point correspondence",
+   "key": "ot",
+   "label": "Optimal transport",
+   "pattern": "\\bot\\.(emd|sinkhorn|gromov|unbalanced|dist)|import ot\\b|optimal.transport|sinkhorn|gromov",
+   "definition": "Soft matching by optimal transport (POT, Sinkhorn, fused Gromov-Wasserstein)."
+  },
+  {
+   "stage": "match",
+   "category": "Transform estimation",
+   "key": "ransac",
+   "label": "RANSAC",
+   "pattern": "ransac",
+   "definition": "Robust transform fitting from noisy correspondences."
+  },
+  {
+   "stage": "match",
+   "category": "Transform estimation",
+   "key": "procrustes",
+   "label": "Procrustes / Kabsch / Umeyama",
+   "pattern": "procrustes|kabsch|umeyama",
+   "definition": "Closed-form best rotation (and scale) from matched point pairs."
+  },
+  {
+   "stage": "match",
+   "category": "Transform estimation",
+   "key": "icp",
+   "label": "ICP",
+   "pattern": "\\bicp\\b|iterative.closest",
+   "definition": "Iterative closest point: alternate nearest-neighbor matching and Procrustes."
+  },
+  {
+   "stage": "match",
+   "category": "Transform estimation",
+   "key": "cpd",
+   "label": "Coherent point drift",
+   "pattern": "\\bcpd\\b|coherent.point|pycpd|probreg",
+   "definition": "Probabilistic point-set registration."
+  },
+  {
+   "stage": "match",
+   "category": "Parameter search",
+   "key": "optimizer",
+   "label": "Numerical optimizer",
+   "pattern": "minimize\\(|least_squares\\(|differential_evolution\\(|basinhopping\\(|dual_annealing\\(|minimize_scalar\\(",
+   "definition": "Generic scipy optimizer over transform parameters."
+  },
+  {
+   "stage": "match",
+   "category": "Parameter search",
+   "key": "gradient",
+   "label": "Gradient / autograd",
+   "pattern": "\\btorch\\b|autograd|\\bjax\\b",
+   "definition": "Fit by gradient descent in PyTorch or JAX."
+  },
+  {
+   "stage": "model",
+   "category": "Transform family",
+   "key": "rigid",
+   "label": "Rigid",
+   "pattern": "\\brigid|EuclideanTransform|\\bcos\\(|rotation_?matri|rot_?mat|\\bRmat\\b|Rotation\\.from",
+   "definition": "Rotation plus translation (including hand-built rotation matrices)."
+  },
+  {
+   "stage": "model",
+   "category": "Transform family",
+   "key": "similarity",
+   "label": "Similarity (with scale)",
+   "pattern": "similarity.?(transform|align)|SimilarityTransform|with_scaling\\s*=\\s*True|umeyama|isotropic.?scal",
+   "definition": "Rigid plus a single scale factor."
+  },
+  {
+   "stage": "model",
+   "category": "Transform family",
+   "key": "affine",
+   "label": "Affine",
+   "pattern": "\\baffine|AffineTransform",
+   "definition": "General linear map plus translation (shear, anisotropic scale)."
+  },
+  {
+   "stage": "model",
+   "category": "Transform family",
+   "key": "nonrigid",
+   "label": "Non-rigid / deformable",
+   "pattern": "thin.?plate|\\btps\\b|RBFInterpolator|\\bRbf\\(|non.?rigid|deformable|b.?spline|displacement.?field|lddmm|diffeomorph|piecewise.?affine",
+   "definition": "Local deformation: TPS, RBF, B-spline, displacement field, LDDMM."
+  },
+  {
+   "stage": "pkg",
+   "category": "Optimal-transport methods",
+   "key": "PASTE",
+   "label": "PASTE",
+   "pattern": "(?-i:import paste\\b|from paste\\b|\\bpst\\.|pairwise_align\\(|center_align\\(|\\bPASTE\\b(?!2))",
+   "definition": "Optimal-transport alignment of adjacent slices (Zeira et al. 2022)."
+  },
+  {
+   "stage": "pkg",
+   "category": "Optimal-transport methods",
+   "key": "PASTE2",
+   "label": "PASTE2",
+   "pattern": "paste2|partial_pairwise_align",
+   "definition": "Partial optimal-transport extension of PASTE."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "SPACEL",
+   "label": "SPACEL",
+   "pattern": "spacel|scube|splane",
+   "definition": "SPACEL Scube 3D alignment / Splane domains."
+  },
+  {
+   "stage": "pkg",
+   "category": "Optimal-transport methods",
+   "key": "spateo",
+   "label": "Spateo",
+   "pattern": "spateo|morpho_align",
+   "definition": "Spateo morpho_align (rigid + non-rigid)."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "CAST",
+   "label": "CAST",
+   "pattern": "(?-i:\\bCAST\\b|CAST_MARK|CAST_STACK|from CAST|import CAST)",
+   "definition": "CAST graph-embedding alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Image-based methods",
+   "key": "STalign",
+   "label": "STalign",
+   "pattern": "stalign",
+   "definition": "Image-based LDDMM alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Optimal-transport methods",
+   "key": "moscot",
+   "label": "moscot",
+   "pattern": "moscot",
+   "definition": "moscot optimal-transport alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Image-based methods",
+   "key": "GPSA",
+   "label": "GPSA",
+   "pattern": "\\bgpsa\\b",
+   "definition": "Gaussian-process spatial alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "SLAT",
+   "label": "SLAT",
+   "pattern": "(?-i:\\bSLAT\\b|scSLAT|run_SLAT)",
+   "definition": "SLAT graph-matching alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "STAligner",
+   "label": "STAligner",
+   "pattern": "staligner",
+   "definition": "STAligner embedding + ICP."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "GEASO",
+   "label": "GEASO",
+   "pattern": "geaso",
+   "definition": "GEASO (Wang, Liu & Ma 2026)."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "SANTO",
+   "label": "SANTO",
+   "pattern": "(?-i:\\bSANTO\\b|import santo|from santo)",
+   "definition": "SANTO coarse-to-fine alignment."
+  },
+  {
+   "stage": "pkg",
+   "category": "Embedding / graph methods",
+   "key": "STAIR",
+   "label": "STAIR",
+   "pattern": "(?-i:\\bSTAIR\\b|import stair|from stair)",
+   "definition": "STAIR alignment."
+  },
+  {
+   "stage": "multi",
+   "category": "Slice ordering",
+   "key": "sequential",
+   "label": "Sequential chaining",
+   "pattern": "sequential|chain(ed|ing)?\\b|cumulative|consecutive|adjacent.pair|compose",
+   "definition": "Align each slice to its neighbor and compose the transforms."
+  },
+  {
+   "stage": "multi",
+   "category": "Slice ordering",
+   "key": "reference",
+   "label": "Common reference slice",
+   "pattern": "reference.?slice|ref_slice|\\bref_idx|center_align|anchor.?slice",
+   "definition": "Align every slice to one reference or center slice."
+  },
+  {
+   "stage": "multi",
+   "category": "Tiling / 3D",
+   "key": "stitch",
+   "label": "Stitching / overlap",
+   "pattern": "stitch|overlap.?(region|area|fraction)",
+   "definition": "Stitch tiles using their overlapping area."
+  },
+  {
+   "stage": "multi",
+   "category": "Tiling / 3D",
+   "key": "z_stack",
+   "label": "3D stacking",
+   "pattern": "\\bz_?coord|z_spacing|3d.?(stack|reconstruct)",
+   "definition": "Treat slices as a 3D stack."
+  },
+  {
+   "stage": "check",
+   "category": "Label-free validation",
+   "key": "proxy_metric",
+   "label": "Internal alignment score",
+   "pattern": "def (evaluate|score|objective)\\w*\\(|(neighbo.?r|knn)\\w{0,3}_?(agree|consist|purity|corr)|alignment.?(score|quality|metric)|chamfer|hausdorff|overlap.?(ratio|iou|score)|\\biou\\b|expr\\w*_?(corr|similarity|agreement)",
+   "definition": "A label-free score the agent computes to judge an alignment (neighbor expression agreement, overlap, Chamfer distance)."
+  },
+  {
+   "stage": "check",
+   "category": "Label-free validation",
+   "key": "synthetic",
+   "label": "Synthetic transform test",
+   "pattern": "synthetic|known.?(rotation|transform|shift)|random.?(rotation|transform)|recover(ed|s)?\\s+(the\\s+)?(rotation|transform|angle)",
+   "definition": "Apply a known transform to the data and check that the method recovers it."
+  },
+  {
+   "stage": "check",
+   "category": "Visual check",
+   "key": "visual",
+   "label": "Plot for visual QC",
+   "pattern": "savefig|imshow\\(|plt\\.scatter|ax\\.scatter",
+   "definition": "Render the aligned slices to an image."
+  },
+  {
+   "stage": "check",
+   "category": "Visual check",
+   "key": "looked_at_plot",
+   "label": "Looked at a plot",
+   "pattern": null,
+   "definition": "The agent opened an image file it made (Read / read_file on a .png)."
+  },
+  {
+   "stage": "check",
+   "category": "Outside info",
+   "key": "web",
+   "label": "Web search",
+   "pattern": null,
+   "definition": "The agent ran a web search."
+  }
+ ],
+ "phases": [
+  {
+   "key": "L",
+   "label": "inspect data / task"
+  },
+  {
+   "key": "S",
+   "label": "set up env / read package docs"
+  },
+  {
+   "key": "P",
+   "label": "preprocess / features"
+  },
+  {
+   "key": "A",
+   "label": "try an alignment method"
+  },
+  {
+   "key": "E",
+   "label": "evaluate / compare candidates"
+  },
+  {
+   "key": "W",
+   "label": "write the submission"
+  },
+  {
+   "key": "V",
+   "label": "validate output / report"
+  },
+  {
+   "key": "O",
+   "label": "wait / housekeeping"
+  }
+ ]
+}
